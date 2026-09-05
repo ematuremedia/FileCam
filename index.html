@@ -64,7 +64,7 @@
   .filecheck-row{ display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:6px; }
   .filecheck-row input{ width:18px; height:18px; accent-color:var(--accent); flex-shrink:0; }
   .filecheck-row .name{ font-size:13px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .engine-banner{ font-family:var(--font-mono); font-size:11.5px; }
+  .engine-banner{ font-family:var(--font-mono); font-size:10.5px; padding:9px 12px; margin-bottom:10px; line-height:1.5; }
   .brand .mark img{ width:100%; height:100%; object-fit:cover; border-radius:7px; display:block; }
 
   .empty-state{ text-align:center; padding:56px 20px; color:var(--text-dim); }
@@ -275,7 +275,7 @@
     </div>
     <div id="fileChecklist" style="margin-bottom:16px;"></div>
     <h2 class="section-title">Ask</h2>
-    <div class="chat-log" id="chatLogAll"><div class="bubble hint">Pick files above, then ask something like "Generate 25 MCQs from all physics files" or "Compare the totals across these invoices."</div></div>
+    <div class="chat-log" id="chatLogAll"><div class="bubble hint">Ask something about the files you picked above.</div></div>
   </main>
   <div style="padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--border); background:var(--surface); flex-shrink:0;">
     <div class="ai-input-row">
@@ -396,7 +396,7 @@
       </select>
       <button class="btn btn-outline btn-sm" id="btnTranslate">Translate</button>
     </div>
-    <div class="chat-log" id="chatLog"><div class="bubble hint">Ask a question about the file you're previewing, or pick a language above to translate it.</div></div>
+    <div class="chat-log" id="chatLog"><div class="bubble hint">Ask about this file, or translate it above.</div></div>
     <div class="ai-input-row">
       <input type="text" id="aiInput" placeholder="e.g. Summarize page 2">
       <button class="send-btn" id="btnSendAi" data-icon="send"></button>
@@ -1296,9 +1296,10 @@ async function ensureWebLLM(onProgress){
 }
 async function updateEngineStatusBanner(){
   const el = $('engineStatusBanner');
-  if(webllmReady){ el.textContent = 'On-device AI ready (free, open-source) - works offline.'; return; }
-  if(!('gpu' in navigator)){ el.textContent = "This device/browser doesn't support on-device AI (needs WebGPU). Using free offline Smart Search instead, unless you add your own API key in Settings.";; return; }
-  el.textContent = 'On-device AI (free, open-source, ~350MB one-time download) will load the first time you ask a question. After that it works fully offline.';
+  if(webllmReady){ el.style.display='none'; return; }
+  el.style.display='block';
+  if(!('gpu' in navigator)){ el.textContent = "No on-device AI on this browser (needs WebGPU) - using offline Smart Search, or add your own API key in Settings."; return; }
+  el.textContent = 'On-device AI loads on your first question (~350MB, one-time). Offline after that.';
 }
 async function askAIEngine(question, context){
   try{
@@ -1335,7 +1336,12 @@ $('btnAiSettingsGlobal').addEventListener('click', ()=>{ $('apiKeyInput').value=
 $('btnSaveKey').addEventListener('click', ()=>{ userApiKey=$('apiKeyInput').value.trim()||null; $('aiSettingsModal').classList.remove('on'); showToast(userApiKey?'API key saved for this session':'No key set'); });
 $('btnClearKey').addEventListener('click', ()=>{ userApiKey=null; $('apiKeyInput').value=''; $('aiSettingsModal').classList.remove('on'); showToast('Key cleared'); });
 
-function appendChat(logId, role,text){ const log=$(logId); const b=document.createElement('div'); b.className='bubble '+role; b.textContent=text; log.appendChild(b); log.scrollTop=log.scrollHeight; return b; }
+function appendChat(logId, role,text){
+  const log=$(logId);
+  const existingHint = log.querySelector('.bubble.hint');
+  if(existingHint) log.innerHTML = '';
+  const b=document.createElement('div'); b.className='bubble '+role; b.textContent=text; log.appendChild(b); log.scrollTop=log.scrollHeight; return b;
+}
 $('btnSendAi').addEventListener('click', sendAi);
 $('aiInput').addEventListener('keydown', e=>{ if(e.key==='Enter') sendAi(); });
 async function sendAi(){

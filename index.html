@@ -1366,7 +1366,9 @@ async function ensureWebLLM(onProgress){
     webllmLoading = true;
     if(!webllmModule) webllmModule = await import('https://esm.run/@mlc-ai/web-llm');
     const modelList = webllmModule.prebuiltAppConfig.model_list;
-    const cand = modelList.find(m=>/Qwen2\.5-0\.5B-Instruct/i.test(m.model_id))
+    const cand = modelList.find(m=>/Qwen3-0\.6B-Instruct/i.test(m.model_id))
+      || modelList.find(m=>/Qwen3-1\.7B-Instruct/i.test(m.model_id))
+      || modelList.find(m=>/Qwen2\.5-0\.5B-Instruct/i.test(m.model_id))
       || modelList.find(m=>/Qwen2\.5-1\.5B-Instruct/i.test(m.model_id))
       || modelList.find(m=>/Phi-3\.5-mini-instruct/i.test(m.model_id))
       || modelList[0];

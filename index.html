@@ -105,9 +105,20 @@
   .search-bar.on{ display:flex; }
   .search-bar input{ flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-size:14px; }
   .search-count{ font-family:var(--font-mono); font-size:11px; color:var(--text-dim); white-space:nowrap; }
-  .page-nav{ display:none; align-items:center; justify-content:space-between; padding:10px 16px 0; }
+  .search-results{ display:none; flex-direction:column; gap:6px; padding:8px 16px 0; max-height:160px; overflow-y:auto; }
+  .search-results.on{ display:flex; }
+  .search-result-item{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px; font-size:12.5px; color:var(--text-dim); text-align:left; }
+  .search-result-item b{ color:var(--amber); font-weight:600; }
+  .search-result-item.current{ border-color:var(--accent); background:var(--accent-dim); color:var(--text); }
+  .page-nav{ display:none; align-items:center; justify-content:center; padding:10px 16px 0; }
   .page-nav.on{ display:flex; }
   .page-nav span{ font-family:var(--font-mono); font-size:12px; color:var(--text-dim); }
+  .toolbar-group{ display:flex; align-items:center; gap:3px; padding:3px 8px; margin-right:2px; border-right:1px solid var(--border); flex-shrink:0; }
+  .toolbar-label{ font-family:var(--font-mono); font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; margin-right:3px; }
+  .page-stack{ display:flex; flex-direction:column; gap:14px; }
+  .page-stack-item{ scroll-margin-top:12px; }
+  .scan-done-banner{ background:var(--accent-dim); border:1px solid var(--accent); border-radius:var(--radius); padding:14px; margin-bottom:14px; font-size:13.5px; }
+  .scan-done-banner div{ margin-bottom:10px; }
 
   .preview-body{ flex:1; overflow-y:auto; padding:16px; padding-bottom:90px; -webkit-overflow-scrolling:touch; position:relative; }
   .pinch-wrap{ touch-action:none; display:flex; justify-content:center; }
@@ -147,6 +158,8 @@
   .modal input{ width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:11px 12px; color:var(--text); font-size:14px; margin-bottom:12px; font-family:var(--font-mono); }
   .modal-actions{ display:flex; gap:8px; }
   .modal-actions .btn{ flex:1; }
+  .translate-row{ display:flex; gap:8px; margin-bottom:12px; }
+  .translate-row select{ flex:1; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 10px; color:var(--text); font-size:12.5px; }
   .convert-list{ display:flex; flex-direction:column; gap:8px; overflow-y:auto; }
   .convert-item{ display:flex; align-items:center; justify-content:space-between; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; font-size:13.5px; }
 
@@ -224,8 +237,9 @@
       <button class="btn btn-primary" id="btnCapture"><span data-icon="dot" style="width:14px;height:14px;display:inline-flex;"></span> Capture</button>
       <button class="btn btn-outline" id="btnCancelCamera">Cancel</button>
     </div>
-    <div id="scanControlsCrop" class="scan-actions" style="display:none;">
+    <div id="scanControlsCrop" class="scan-actions three" style="display:none;">
       <button class="btn btn-primary" id="btnConfirmCrop"><span data-icon="check" style="width:16px;height:16px;display:inline-flex;"></span> Use crop</button>
+      <button class="btn btn-outline" id="btnReDetect">Re-detect edges</button>
       <button class="btn btn-outline" id="btnSkipCrop">Skip crop</button>
     </div>
     <div id="scanControlsFilter" class="scan-actions three" style="display:none;">
@@ -287,14 +301,23 @@
   </div>
   <div class="preview-toolbar" id="previewToolbar">
     <button class="icon-btn" id="btnToggleSearch" title="Search" data-icon="search"></button>
+    <div class="toolbar-group">
+      <span class="toolbar-label">Speed</span>
+      <button class="icon-btn" id="btnRateDown">-</button>
+      <span class="rate-label" id="rateLabel">1.0x</span>
+      <button class="icon-btn" id="btnRateUp">+</button>
+    </div>
     <button class="icon-btn" id="btnPlay" title="Read aloud" data-icon="play"></button>
     <button class="icon-btn" id="btnStopSpeak" title="Stop" data-icon="stop"></button>
-    <span class="rate-label" id="rateLabel">1.0×</span>
-    <button class="icon-btn" id="btnRateDown">–</button>
-    <button class="icon-btn" id="btnRateUp">+</button>
+    <div class="toolbar-group">
+      <span class="toolbar-label">Zoom</span>
+      <button class="icon-btn" id="btnZoomOut" title="Zoom out" data-icon="zoomOut"></button>
+      <span class="rate-label" id="zoomLabel">100%</span>
+      <button class="icon-btn" id="btnZoomIn" title="Zoom in" data-icon="zoomIn"></button>
+      <button class="icon-btn" id="btnZoomReset" title="Reset zoom" data-icon="zoom"></button>
+    </div>
     <button class="icon-btn" id="btnTheme" title="Theme" data-icon="moon"></button>
     <button class="icon-btn" id="btnViewToggle" title="Native / text view">Aa</button>
-    <button class="icon-btn" id="btnZoomReset" title="Reset zoom" data-icon="zoom"></button>
   </div>
   <div class="search-bar" id="searchBar">
     <input type="text" id="searchInput" placeholder="Search this document...">
@@ -302,10 +325,9 @@
     <button class="icon-btn" id="btnPrevMatch" data-icon="arrowUp"></button>
     <button class="icon-btn" id="btnNextMatch" data-icon="arrowDown"></button>
   </div>
+  <div class="search-results" id="searchResults"></div>
   <div class="page-nav" id="pageNav">
-    <button class="icon-btn" id="btnPrevPage" data-icon="chevLeft"></button>
-    <span id="pageIndicator">Page 1 of 1</span>
-    <button class="icon-btn" id="btnNextPage" data-icon="chevRight"></button>
+    <span id="pageIndicator">1 page</span>
   </div>
   <div class="preview-body" id="previewBody">
     <div id="previewNative"></div>
@@ -359,7 +381,22 @@
 <div class="modal-backdrop" id="aiModal">
   <div class="modal" style="height:75vh;">
     <h3>Ask about this file <button class="icon-btn" id="btnAiSettings" data-icon="gear"></button></h3>
-    <div class="chat-log" id="chatLog"><div class="bubble hint">Ask a question about the file you're previewing.</div></div>
+    <div class="translate-row">
+      <select id="translateLang">
+        <option value="">Detect language & translate to...</option>
+        <option value="English">English</option>
+        <option value="Bengali">Bengali (বাংলা)</option>
+        <option value="Hindi">Hindi</option>
+        <option value="Arabic">Arabic</option>
+        <option value="Spanish">Spanish</option>
+        <option value="French">French</option>
+        <option value="Chinese">Chinese</option>
+        <option value="Japanese">Japanese</option>
+        <option value="Urdu">Urdu</option>
+      </select>
+      <button class="btn btn-outline btn-sm" id="btnTranslate">Translate</button>
+    </div>
+    <div class="chat-log" id="chatLog"><div class="bubble hint">Ask a question about the file you're previewing, or pick a language above to translate it.</div></div>
     <div class="ai-input-row">
       <input type="text" id="aiInput" placeholder="e.g. Summarize page 2">
       <button class="send-btn" id="btnSendAi" data-icon="send"></button>
@@ -421,6 +458,8 @@ const ICONS = {
   pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
   stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>',
   zoom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+  zoomIn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M10.5 8v5M8 10.5h5M20 20l-4.3-4.3"/></svg>',
+  zoomOut: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M8 10.5h5M20 20l-4.3-4.3"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>',
   chevLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
   chevRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
@@ -604,31 +643,52 @@ function openDoc(id){
 
 /* ---------------- Preview rendering ---------------- */
 function refreshPreviewText(){ if($('screenPreview').classList.contains('active')) renderPreview(); }
+let pdfRenderCap = 15;
 async function renderPreview(){
   const doc = currentDoc(); if(!doc) return;
   const multiPage = (doc.kind==='pdf' || doc.kind==='scan') && doc.pages.length>1;
   $('pageNav').classList.toggle('on', multiPage);
+  if(multiPage) $('pageIndicator').textContent = `${doc.pages.length} pages`;
   const controlsDisabled = (doc.kind==='audio' || doc.kind==='video' || doc.kind==='unsupported');
   $('previewToolbar').style.opacity = controlsDisabled ? '.4' : '1';
   $('previewToolbar').style.pointerEvents = controlsDisabled ? 'none' : 'auto';
   $('btnAskAiFab').style.display = controlsDisabled ? 'none' : 'flex';
-  if(multiPage) $('pageIndicator').textContent = `Page ${currentPageIdx+1} of ${doc.pages.length}`;
 
   const nativeEl = $('previewNative'); const textEl = $('readerText');
   const showNative = viewMode==='native';
   nativeEl.style.display = showNative ? 'block' : 'none';
   textEl.style.display = showNative ? 'none' : 'block';
   $('btnViewToggle').classList.toggle('active', viewMode==='text');
+  $('zoomLabel').textContent = Math.round(zoomScale*100)+'%';
 
   if(showNative){
     nativeEl.innerHTML = '';
     if(doc.kind==='pdf' || doc.kind==='scan'){
-      const wrap = document.createElement('div'); wrap.className='pinch-wrap'; wrap.id='pinchTarget';
-      const img = document.createElement('img'); img.style.transform = `scale(${zoomScale})`;
-      let src = doc.pages[currentPageIdx].dataURL;
-      if(!src && doc.kind==='pdf'){ src = await renderPdfPageImage(doc, currentPageIdx); }
-      img.src = src || '';
-      wrap.appendChild(img); nativeEl.appendChild(wrap); attachPinch(wrap, img, 'image');
+      if(doc.kind==='scan' && doc.justScanned){
+        nativeEl.insertAdjacentHTML('beforeend', `<div class="scan-done-banner"><div>Scan complete - ${doc.pages.length} page${doc.pages.length>1?'s':''} saved to your Library.</div><button class="btn btn-primary btn-block" id="btnSaveScanPdf">Save as PDF</button></div>`);
+      }
+      const stack = document.createElement('div'); stack.className='page-stack';
+      const capCount = Math.min(doc.pages.length, pdfRenderCap);
+      for(let i=0;i<capCount;i++){
+        const wrap = document.createElement('div'); wrap.className='pinch-wrap page-stack-item'; wrap.dataset.pinch='1';
+        const img = document.createElement('img'); img.style.transform = `scale(${zoomScale})`; img.loading='lazy';
+        let src = doc.pages[i].dataURL;
+        if(!src && doc.kind==='pdf'){ src = await renderPdfPageImage(doc, i); }
+        img.src = src || '';
+        wrap.appendChild(img);
+        stack.appendChild(wrap);
+        attachPinch(wrap, img, 'image');
+      }
+      nativeEl.appendChild(stack);
+      if(doc.pages.length > capCount){
+        const more = document.createElement('button'); more.className='btn btn-outline btn-block'; more.style.marginTop='12px';
+        more.textContent = `Load ${Math.min(15, doc.pages.length-capCount)} more pages (${capCount} of ${doc.pages.length} shown)`;
+        more.addEventListener('click', ()=>{ pdfRenderCap += 15; renderPreview(); });
+        nativeEl.appendChild(more);
+      }
+      if(doc.kind==='scan' && doc.justScanned){
+        const btn = $('btnSaveScanPdf'); if(btn) btn.addEventListener('click', ()=>{ doc.justScanned=false; convertPagesToPdf(doc); });
+      }
     } else if(doc.kind==='image'){
       const wrap = document.createElement('div'); wrap.className='pinch-wrap'; wrap.id='pinchTarget';
       const img = document.createElement('img'); img.style.transform=`scale(${zoomScale})`; img.src = doc.dataURL;
@@ -677,12 +737,12 @@ function attachPinch(wrap, imgEl, mode){
       e.preventDefault();
       const d = dist(e.touches[0],e.touches[1]);
       zoomScale = Math.max(0.5, Math.min(4, pinch.startScale*(d/pinch.startDist)));
-      imgEl.style.transform = `scale(${zoomScale})`;
+      applyZoomToAll();
     }
   }, {passive:false});
   wrap.addEventListener('touchend', e=>{ if(e.touches.length<2) pinch.active=false; });
 }
-$('btnZoomReset').addEventListener('click', ()=>{ zoomScale=1; renderPreview(); });
+$('btnZoomReset').addEventListener('click', ()=>{ zoomScale=1; applyZoomToAll(); });
 
 function renderTextView(){
   const doc = currentDoc(); if(!doc){ return; }
@@ -700,30 +760,61 @@ function renderTextView(){
 }
 $('btnViewToggle').addEventListener('click', ()=>{ viewMode = viewMode==='native' ? 'text' : 'native'; renderPreview(); });
 $('btnTheme').addEventListener('click', ()=>{ readerTheme = readerTheme==='dark' ? 'sepia' : 'dark'; renderTextView(); });
-$('btnPrevPage').addEventListener('click', ()=>{ if(currentPageIdx>0){ currentPageIdx--; renderPreview(); } });
-$('btnNextPage').addEventListener('click', ()=>{ const doc=currentDoc(); if(doc && currentPageIdx<doc.pages.length-1){ currentPageIdx++; renderPreview(); } });
+function applyZoomToAll(){
+  document.querySelectorAll('.pinch-wrap img').forEach(img=>{ img.style.transform = `scale(${zoomScale})`; });
+  $('zoomLabel').textContent = Math.round(zoomScale*100)+'%';
+}
+$('btnZoomIn').addEventListener('click', ()=>{ zoomScale = Math.min(4, +(zoomScale+0.25).toFixed(2)); applyZoomToAll(); });
+$('btnZoomOut').addEventListener('click', ()=>{ zoomScale = Math.max(0.5, +(zoomScale-0.25).toFixed(2)); applyZoomToAll(); });
 
 /* ---- Search ---- */
-$('btnToggleSearch').addEventListener('click', ()=>{ const on=$('searchBar').classList.toggle('on'); $('btnToggleSearch').classList.toggle('active',on); if(on){ viewMode='text'; renderPreview(); $('searchInput').focus(); } });
+$('btnToggleSearch').addEventListener('click', ()=>{
+  const on=$('searchBar').classList.toggle('on'); $('btnToggleSearch').classList.toggle('active',on);
+  $('searchResults').classList.toggle('on', on);
+  if(on){ viewMode='text'; renderPreview(); $('searchInput').focus(); }
+  else { $('searchResults').innerHTML=''; }
+});
 $('searchInput').addEventListener('input', e=> doSearch(e.target.value));
 function doSearch(query){
   const doc = currentDoc(); searchMatches=[]; currentMatchIdx=-1;
-  if(!doc || !query){ $('searchCount').textContent=''; renderTextView(); return; }
+  const text = doc ? (doc.fullText||'') : '';
+  if(!doc || !query){ $('searchCount').textContent=''; $('searchResults').innerHTML=''; renderTextView(); return; }
   const re = new RegExp(escapeRegex(query),'gi');
-  searchMatches = [...(doc.fullText||'').matchAll(re)];
+  searchMatches = [...text.matchAll(re)];
   $('searchCount').textContent = searchMatches.length ? `1 / ${searchMatches.length}` : 'No matches';
   currentMatchIdx = searchMatches.length ? 0 : -1;
   renderTextView();
-  if(currentMatchIdx>=0) setTimeout(()=>{ const el=$('curMatch'); if(el) el.scrollIntoView({block:'center',behavior:'smooth'}); },50);
+  renderSearchResultsList(text);
+  jumpToCurrentMatch();
+}
+function renderSearchResultsList(text){
+  const list = $('searchResults'); list.innerHTML='';
+  searchMatches.slice(0,30).forEach((m,idx)=>{
+    const start = Math.max(0, m.index-28); const end = Math.min(text.length, m.index+m[0].length+40);
+    let snippet = (start>0?'...':'') + text.slice(start,end).replace(/\n/g,' ') + (end<text.length?'...':'');
+    const before = text.slice(start, m.index).replace(/\n/g,' ');
+    const hit = m[0]; const after = text.slice(m.index+hit.length, end).replace(/\n/g,' ');
+    const row = document.createElement('button');
+    row.className = 'search-result-item' + (idx===currentMatchIdx ? ' current' : '');
+    row.innerHTML = `${start>0?'...':''}${escapeHtml(before)}<b>${escapeHtml(hit)}</b>${escapeHtml(after)}${end<text.length?'...':''}`;
+    row.addEventListener('click', ()=>{ currentMatchIdx=idx; $('searchCount').textContent = `${currentMatchIdx+1} / ${searchMatches.length}`; renderTextView(); renderSearchResultsList(text); jumpToCurrentMatch(); });
+    list.appendChild(row);
+  });
+}
+function jumpToCurrentMatch(){
+  if(currentMatchIdx<0) return;
+  setTimeout(()=>{ const el=$('curMatch'); if(el) el.scrollIntoView({block:'center',behavior:'smooth'}); },60);
 }
 $('btnNextMatch').addEventListener('click', ()=>stepMatch(1));
 $('btnPrevMatch').addEventListener('click', ()=>stepMatch(-1));
 function stepMatch(dir){
   if(!searchMatches.length) return;
+  const doc = currentDoc();
   currentMatchIdx = (currentMatchIdx+dir+searchMatches.length)%searchMatches.length;
   $('searchCount').textContent = `${currentMatchIdx+1} / ${searchMatches.length}`;
   renderTextView();
-  setTimeout(()=>{ const el=$('curMatch'); if(el) el.scrollIntoView({block:'center',behavior:'smooth'}); },50);
+  renderSearchResultsList(doc.fullText||'');
+  jumpToCurrentMatch();
 }
 
 /* ---- Read aloud (native browser TTS, instant/free) ---- */
@@ -784,41 +875,166 @@ $('galleryImport').addEventListener('change', async e=>{
   capturedDataURL = await fileToDataURL(files[0]); enterCropStep(capturedDataURL);
   window._galleryQueue = files.slice(1); e.target.value='';
 });
-function enterCropStep(dataURL){
-  const img=$('cropImg'); img.src=dataURL; img.style.display='block'; $('cropOverlay').innerHTML='';
-  img.onload = ()=> addCropHandles();
-  $('scanControlsCrop').style.display='grid';
+/* ---------------- OpenCV.js: real edge detection + perspective correction ---------------- */
+let cvReady = false, cvFailed = false, cvLoadPromise = null;
+function ensureOpenCV(){
+  if(cvReady) return Promise.resolve(true);
+  if(cvFailed) return Promise.resolve(false);
+  if(cvLoadPromise) return cvLoadPromise;
+  cvLoadPromise = new Promise((resolve)=>{
+    const timeout = setTimeout(()=>{ cvFailed=true; resolve(false); }, 20000);
+    const script = document.createElement('script');
+    script.src = 'https://docs.opencv.org/4.9.0/opencv.js';
+    script.onload = ()=>{
+      const check = ()=>{
+        if(window.cv && window.cv.Mat){ clearTimeout(timeout); cvReady=true; resolve(true); }
+        else if(window.cv){ window.cv['onRuntimeInitialized'] = ()=>{ clearTimeout(timeout); cvReady=true; resolve(true); }; }
+        else { setTimeout(check, 100); }
+      };
+      check();
+    };
+    script.onerror = ()=>{ clearTimeout(timeout); cvFailed=true; resolve(false); };
+    document.head.appendChild(script);
+  });
+  return cvLoadPromise;
 }
-function addCropHandles(){
+function orderQuadPoints(pts){
+  const sum = pts.map(p=>p.x+p.y), diff = pts.map(p=>p.x-p.y);
+  const tl = pts[sum.indexOf(Math.min(...sum))];
+  const br = pts[sum.indexOf(Math.max(...sum))];
+  const tr = pts[diff.indexOf(Math.max(...diff))];
+  const bl = pts[diff.indexOf(Math.min(...diff))];
+  return [tl,tr,br,bl];
+}
+function detectDocumentQuad(imgElement){
+  if(!cvReady) return null;
+  let src,gray,blurred,edged,dilated,kernel,contours,hierarchy;
+  try{
+    src = cv.imread(imgElement);
+    gray = new cv.Mat(); cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+    blurred = new cv.Mat(); cv.GaussianBlur(gray, blurred, new cv.Size(5,5), 0);
+    edged = new cv.Mat(); cv.Canny(blurred, edged, 50, 150);
+    kernel = cv.Mat.ones(3,3,cv.CV_8U);
+    dilated = new cv.Mat(); cv.dilate(edged, dilated, kernel);
+    contours = new cv.MatVector(); hierarchy = new cv.Mat();
+    cv.findContours(dilated, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    let best = null, bestArea = 0;
+    const imgArea = src.rows*src.cols;
+    for(let i=0;i<contours.size();i++){
+      const cnt = contours.get(i);
+      const peri = cv.arcLength(cnt, true);
+      const approx = new cv.Mat();
+      cv.approxPolyDP(cnt, approx, 0.02*peri, true);
+      if(approx.rows===4){
+        const area = Math.abs(cv.contourArea(approx));
+        if(area > bestArea && area > imgArea*0.15){ bestArea=area; if(best) best.delete(); best=approx.clone(); }
+      }
+      approx.delete(); cnt.delete();
+    }
+    let points = null;
+    if(best){
+      points = [];
+      for(let i=0;i<4;i++){ points.push({x: best.intPtr(i,0)[0], y: best.intPtr(i,0)[1]}); }
+      points = orderQuadPoints(points);
+      best.delete();
+    }
+    return points;
+  }catch(e){ console.error('detectDocumentQuad failed', e); return null; }
+  finally{ [src,gray,blurred,edged,dilated,kernel,contours,hierarchy].forEach(m=>{ if(m && m.delete) m.delete(); }); }
+}
+function warpPerspectiveCrop(imgElement, quad){
+  if(!cvReady) return null;
+  let src,dst,M,srcTri,dstTri;
+  try{
+    src = cv.imread(imgElement);
+    const [tl,tr,br,bl] = quad;
+    const maxWidth = Math.max(Math.hypot(tr.x-tl.x,tr.y-tl.y), Math.hypot(br.x-bl.x,br.y-bl.y));
+    const maxHeight = Math.max(Math.hypot(bl.x-tl.x,bl.y-tl.y), Math.hypot(br.x-tr.x,br.y-tr.y));
+    srcTri = cv.matFromArray(4,1,cv.CV_32FC2,[tl.x,tl.y, tr.x,tr.y, br.x,br.y, bl.x,bl.y]);
+    dstTri = cv.matFromArray(4,1,cv.CV_32FC2,[0,0, maxWidth-1,0, maxWidth-1,maxHeight-1, 0,maxHeight-1]);
+    M = cv.getPerspectiveTransform(srcTri, dstTri);
+    dst = new cv.Mat();
+    cv.warpPerspective(src, dst, M, new cv.Size(maxWidth,maxHeight), cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+    const canvas = document.createElement('canvas');
+    cv.imshow(canvas, dst);
+    return canvas.toDataURL('image/jpeg', 0.92);
+  }catch(e){ console.error('warpPerspectiveCrop failed', e); return null; }
+  finally{ [src,dst,M,srcTri,dstTri].forEach(m=>{ if(m && m.delete) m.delete(); }); }
+}
+
+async function enterCropStep(dataURL){
+  const img=$('cropImg'); img.src=dataURL; img.style.display='block'; $('cropOverlay').innerHTML='';
+  $('scanControlsCrop').style.display='grid';
+  img.onload = async ()=>{
+    let quad = null;
+    const cvOk = cvReady || await ensureOpenCV();
+    if(cvOk){
+      showToast('Detecting page edges...', 1800);
+      quad = detectDocumentQuad(img);
+    }
+    addCropHandles(quad);
+    if(!cvOk) showToast('Auto edge-detection unavailable here - drag the corners manually', 3200);
+    else if(!quad) showToast('Could not auto-detect edges - drag the corners to match the page', 3200);
+  };
+}
+function addCropHandles(detectedQuad){
   const overlay=$('cropOverlay'); overlay.style.position='absolute'; overlay.style.inset='0';
-  let box={x1:12,y1:12,x2:88,y2:88};
+  const img = $('cropImg');
+  let pts;
+  if(detectedQuad){
+    pts = detectedQuad.map(p=>({ x: (p.x/img.naturalWidth)*100, y: (p.y/img.naturalHeight)*100 }));
+  } else {
+    pts = [{x:10,y:10},{x:90,y:10},{x:90,y:90},{x:10,y:90}]; // tl,tr,br,bl default
+  }
+  const svgNS = 'http://www.w3.org/2000/svg';
   function draw(){
     overlay.innerHTML='';
-    const b=document.createElement('div'); b.className='crop-box';
-    b.style.left=box.x1+'%'; b.style.top=box.y1+'%'; b.style.width=(box.x2-box.x1)+'%'; b.style.height=(box.y2-box.y1)+'%';
-    overlay.appendChild(b);
-    [['tl',box.x1,box.y1],['br',box.x2,box.y2]].forEach(([tag,x,y])=>{
-      const h=document.createElement('div'); h.className='crop-handle'; h.style.left=x+'%'; h.style.top=y+'%';
-      h.addEventListener('pointerdown', e=>{ e.preventDefault(); dragTarget=tag; }); overlay.appendChild(h);
+    const svg = document.createElementNS(svgNS,'svg');
+    svg.setAttribute('viewBox','0 0 100 100'); svg.setAttribute('preserveAspectRatio','none');
+    svg.style.position='absolute'; svg.style.inset='0'; svg.style.width='100%'; svg.style.height='100%'; svg.style.pointerEvents='none';
+    const poly = document.createElementNS(svgNS,'polygon');
+    poly.setAttribute('points', pts.map(p=>`${p.x},${p.y}`).join(' '));
+    poly.setAttribute('fill','rgba(242,88,43,0.16)');
+    poly.setAttribute('stroke','var(--accent)'); poly.setAttribute('stroke-width','0.6'); poly.setAttribute('vector-effect','non-scaling-stroke');
+    svg.appendChild(poly); overlay.appendChild(svg);
+    pts.forEach((p,idx)=>{
+      const h=document.createElement('div'); h.className='crop-handle'; h.style.left=p.x+'%'; h.style.top=p.y+'%';
+      h.addEventListener('pointerdown', e=>{ e.preventDefault(); dragTarget=idx; }); overlay.appendChild(h);
     });
   }
   overlay.addEventListener('pointermove', e=>{
-    if(!dragTarget) return;
+    if(dragTarget===null || dragTarget===undefined) return;
     const rect=overlay.getBoundingClientRect();
     let px=((e.clientX-rect.left)/rect.width)*100, py=((e.clientY-rect.top)/rect.height)*100;
     px=Math.max(0,Math.min(100,px)); py=Math.max(0,Math.min(100,py));
-    if(dragTarget==='tl'){ box.x1=Math.min(px,box.x2-5); box.y1=Math.min(py,box.y2-5); } else { box.x2=Math.max(px,box.x1+5); box.y2=Math.max(py,box.y1+5); }
+    pts[dragTarget] = {x:px,y:py};
     draw();
   });
   window.addEventListener('pointerup', ()=> dragTarget=null);
-  overlay._getBox = ()=>box; draw();
+  overlay._getPoints = ()=>pts;
+  draw();
 }
-$('btnConfirmCrop').addEventListener('click', ()=>{
-  const overlay=$('cropOverlay'); const box=overlay._getBox?overlay._getBox():{x1:0,y1:0,x2:100,y2:100};
+$('btnReDetect').addEventListener('click', async ()=>{
   const img=$('cropImg');
-  const sx=img.naturalWidth*box.x1/100, sy=img.naturalHeight*box.y1/100, sw=img.naturalWidth*(box.x2-box.x1)/100, sh=img.naturalHeight*(box.y2-box.y1)/100;
-  const c=document.createElement('canvas'); c.width=sw; c.height=sh; c.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,sw,sh);
-  croppedDataURL=c.toDataURL('image/jpeg',0.92); enterFilterStep();
+  const cvOk = cvReady || await ensureOpenCV();
+  if(!cvOk){ showToast('Auto edge-detection unavailable here'); return; }
+  showToast('Detecting page edges...', 1500);
+  const quad = detectDocumentQuad(img);
+  if(quad) addCropHandles(quad); else showToast('Could not find a clear page edge - adjust corners manually');
+});
+$('btnConfirmCrop').addEventListener('click', ()=>{
+  const overlay=$('cropOverlay'); const pts=overlay._getPoints?overlay._getPoints():[{x:0,y:0},{x:100,y:0},{x:100,y:100},{x:0,y:100}];
+  const img=$('cropImg');
+  const pixelPts = pts.map(p=>({ x: img.naturalWidth*p.x/100, y: img.naturalHeight*p.y/100 }));
+  let result = cvReady ? warpPerspectiveCrop(img, pixelPts) : null;
+  if(!result){
+    // Fallback: bounding-box rectangle crop if OpenCV isn't available or the warp failed
+    const xs=pixelPts.map(p=>p.x), ys=pixelPts.map(p=>p.y);
+    const sx=Math.min(...xs), sy=Math.min(...ys), sw=Math.max(...xs)-sx, sh=Math.max(...ys)-sy;
+    const c=document.createElement('canvas'); c.width=sw; c.height=sh; c.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,sw,sh);
+    result = c.toDataURL('image/jpeg',0.92);
+  }
+  croppedDataURL=result; enterFilterStep();
 });
 $('btnSkipCrop').addEventListener('click', ()=>{ croppedDataURL=capturedDataURL; enterFilterStep(); });
 function enterFilterStep(){
@@ -883,7 +1099,7 @@ $('btnNameSave').addEventListener('click', async ()=>{
     fullText += pagesToSave[i].text + '\n\n';
   }
   $('scanProgressFill').style.width='100%';
-  library.push({ id:genId(), name, kind:'scan', ext:'jpg', pages:pagesToSave, fullText:fullText.trim(), createdAt:Date.now() });
+  library.push({ id:genId(), name, kind:'scan', ext:'jpg', pages:pagesToSave, fullText:fullText.trim(), createdAt:Date.now(), justScanned:true });
   setTimeout(()=>{ $('scanProgress').style.display='none'; },500);
   renderLibrary(); showToast('Saved "'+name+'"'); openDoc(library[library.length-1].id);
 });
@@ -1133,6 +1349,17 @@ async function sendAi(){
     pending.textContent = "Using free offline Smart Search (no AI available right now):\n\n" + (fallback.length ? fallback.map(s=>'- '+s).join('\n') : 'No close matches found.');
   }
 }
+$('btnTranslate').addEventListener('click', async ()=>{
+  const target = $('translateLang').value;
+  if(!target){ showToast('Pick a language first'); return; }
+  const doc=currentDoc(); if(!doc || !doc.fullText){ showToast('No readable text in this file yet'); return; }
+  appendChat('chatLog','user', 'Translate this file to ' + target);
+  const pending = appendChat('chatLog','assistant','...');
+  const prompt = `Detect the language of the document below, then translate the full text into ${target}. Reply with only the translation, no extra commentary.`;
+  const answer = await askAIEngine(prompt, doc.fullText.slice(0,8000));
+  if(answer){ pending.textContent = answer; }
+  else{ pending.textContent = "Translation needs the on-device AI or a cloud API key, neither is available right now (see the settings gear above). Offline Smart Search can't translate, only find matching passages."; }
+});
 
 /* ---------------- Cross-file Ask AI (bottom-nav tab) ---------------- */
 function renderFileChecklist(){

@@ -160,6 +160,15 @@
   .modal-actions .btn{ flex:1; }
   .translate-row{ display:flex; gap:8px; margin-bottom:12px; }
   .translate-row select{ flex:1; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 10px; color:var(--text); font-size:12.5px; }
+  .sign-hint{ font-size:12.5px; color:var(--text-dim); margin:0 0 10px; }
+  .sign-pad{ width:100%; height:160px; background:#fff; border-radius:8px; touch-action:none; display:block; }
+  .sign-stage{ position:relative; width:100%; }
+  .sign-stage img{ width:100%; display:block; border-radius:8px; }
+  .sign-box{ position:absolute; border:1.5px dashed var(--accent); touch-action:none; }
+  .sign-box img{ width:100%; display:block; pointer-events:none; }
+  .quick-prompts{ display:flex; gap:7px; overflow-x:auto; padding-bottom:10px; margin-bottom:2px; }
+  .chip-prompt{ flex-shrink:0; padding:8px 13px; border-radius:16px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); font-size:12px; font-weight:600; white-space:nowrap; }
+  .chip-prompt:active{ background:var(--accent-dim); border-color:var(--accent); color:var(--accent); }
   .convert-list{ display:flex; flex-direction:column; gap:8px; overflow-y:auto; }
   .convert-item{ display:flex; align-items:center; justify-content:space-between; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; font-size:13.5px; }
 
@@ -275,7 +284,14 @@
     </div>
     <div id="fileChecklist" style="margin-bottom:16px;"></div>
     <h2 class="section-title">Ask</h2>
-    <div class="chat-log" id="chatLogAll"><div class="bubble hint">Ask something about the files you picked above.</div></div>
+    <div class="quick-prompts" id="quickPromptsAll">
+      <button class="chip-prompt" data-prompt="Generate 25 multiple-choice questions with answers, covering all the selected files.">25 MCQs (student)</button>
+      <button class="chip-prompt" data-prompt="Create an exam covering all the selected files, with a mix of short-answer and long-answer questions and a marking scheme.">Make an exam (teacher)</button>
+      <button class="chip-prompt" data-prompt="Compare the selected documents and list the key differences and similarities.">Compare files</button>
+      <button class="chip-prompt" data-prompt="Summarize every selected file in a short paragraph each.">Summarize all</button>
+      <button class="chip-prompt" data-prompt="List all deadlines, dates, and action items across the selected files.">Deadlines & actions</button>
+    </div>
+    <div class="chat-log" id="chatLogAll"><div class="bubble hint">Tap a suggestion above, or ask your own question about the files you picked.</div></div>
   </main>
   <div style="padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--border); background:var(--surface); flex-shrink:0;">
     <div class="ai-input-row">
@@ -377,10 +393,42 @@
   </div>
 </div>
 
+<!-- Sign document modal -->
+<div class="modal-backdrop" id="signModal">
+  <div class="modal" style="height:82vh; display:flex; flex-direction:column;">
+    <h3>Sign document <button class="icon-btn" id="btnCloseSign" data-icon="close"></button></h3>
+    <div id="signStepDraw">
+      <p class="sign-hint">Draw your signature below with your finger, then continue.</p>
+      <canvas id="signPad" class="sign-pad"></canvas>
+      <div class="scan-actions" style="margin-top:10px;">
+        <button class="btn btn-outline" id="btnClearSign">Clear</button>
+        <button class="btn btn-primary" id="btnUseSign">Use this signature</button>
+      </div>
+    </div>
+    <div id="signStepPlace" style="display:none; flex:1; overflow-y:auto;">
+      <p class="sign-hint">Drag to move, use the corner handle to resize, then export.</p>
+      <div id="signPlaceStage" class="sign-stage"></div>
+      <div class="scan-actions" style="margin-top:12px;">
+        <button class="btn btn-outline" id="btnBackToDraw">Redraw</button>
+        <button class="btn btn-primary" id="btnExportSigned">Export Signed PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Ask AI modal -->
 <div class="modal-backdrop" id="aiModal">
-  <div class="modal" style="height:75vh;">
+  <div class="modal" style="height:78vh;">
     <h3>Ask about this file <button class="icon-btn" id="btnAiSettings" data-icon="gear"></button></h3>
+    <div class="quick-prompts" id="quickPrompts">
+      <button class="chip-prompt" data-prompt="Summarize this document in a few clear sentences.">Summarize</button>
+      <button class="chip-prompt" data-prompt="Explain this document in simple, plain language, as if to someone with no background in the topic.">Explain simply</button>
+      <button class="chip-prompt" data-prompt="Generate a 10-question quiz with answers based on this document, suitable for a student studying it.">Quiz me (student)</button>
+      <button class="chip-prompt" data-prompt="Create 10 exam-style questions with a marking scheme based on this document, suitable for a teacher to use.">Make questions (teacher)</button>
+      <button class="chip-prompt" data-prompt="List the key action items, deadlines, and responsibilities mentioned in this document.">Action items (work)</button>
+      <button class="chip-prompt" data-prompt="List the key dates, obligations, defined terms, and any clauses that look important or risky in this document. This is general assistance, not legal advice.">Key clauses (legal)</button>
+      <button class="chip-prompt" data-prompt="Summarize this document the way a business owner would want: costs, risks, opportunities, and what decision it's asking for.">Business view</button>
+    </div>
     <div class="translate-row">
       <select id="translateLang">
         <option value="">Detect language & translate to...</option>
@@ -396,7 +444,7 @@
       </select>
       <button class="btn btn-outline btn-sm" id="btnTranslate">Translate</button>
     </div>
-    <div class="chat-log" id="chatLog"><div class="bubble hint">Ask about this file, or translate it above.</div></div>
+    <div class="chat-log" id="chatLog"><div class="bubble hint">Tap a suggestion above, ask your own question, or translate.</div></div>
     <div class="ai-input-row">
       <input type="text" id="aiInput" placeholder="e.g. Summarize page 2">
       <button class="send-btn" id="btnSendAi" data-icon="send"></button>
@@ -502,7 +550,9 @@ $('fileImport').addEventListener('change', async (e)=>{
 });
 function kindForFile(name, mime){
   const ext = (name.split('.').pop()||'').toLowerCase();
-  if(['txt','md','log','json'].includes(ext)) return 'text';
+  if(['txt','md','log'].includes(ext)) return 'text';
+  if(ext==='json') return 'json';
+  if(['html','htm'].includes(ext)) return 'html';
   if(ext==='csv') return 'csv';
   if(ext==='pdf') return 'pdf';
   if(ext==='docx') return 'docx';
@@ -524,14 +574,26 @@ async function importFile(file){
   try{
     if(kind==='text'){
       base.fullText = await file.text();
+    } else if(kind==='json'){
+      const raw = await file.text();
+      try{ base.fullText = JSON.stringify(JSON.parse(raw), null, 2); }
+      catch(e){ base.fullText = raw; showToast(file.name + ' is not valid JSON - showing raw content'); }
+    } else if(kind==='html'){
+      const raw = await file.text();
+      base.html = raw;
+      const parsed = new DOMParser().parseFromString(raw, 'text/html');
+      base.fullText = (parsed.body ? parsed.body.textContent : raw).replace(/\s+/g,' ').trim();
     } else if(kind==='csv'){
       base.fullText = await file.text();
     } else if(kind==='pdf'){
-      showToast('Reading PDF...');
       const buf = await file.arrayBuffer();
       base.pdfBuf = buf;
-      const { pages, fullText } = await extractPdf(buf);
+      showToast('Reading PDF - page 1...', 6000);
+      const { pages, fullText } = await extractPdf(buf, (i,total)=> showToast(`Reading PDF - page ${i} of ${total}...`, 4000));
       base.pages = pages; base.fullText = fullText;
+      if(!fullText || fullText.replace(/\[.*?\]/g,'').trim().length===0){
+        showToast(file.name + ' imported, but no readable text was found (it may be a scanned PDF where OCR struggled, or a blank/image-only file)', 5000);
+      }
     } else if(kind==='docx'){
       const buf = await file.arrayBuffer();
       const result = await mammoth.convertToHtml({arrayBuffer:buf});
@@ -569,10 +631,12 @@ async function importFile(file){
       base.mediaURL = URL.createObjectURL(file);
     }
   }catch(err){
-    console.error(err); showToast('Had trouble reading ' + file.name);
+    console.error(err);
+    showToast((err && err.message) ? err.message : ('Had trouble reading ' + file.name), 6000);
+    base.importError = err && err.message;
   }
   library.push(base);
-  showToast('Imported ' + file.name);
+  if(!base.importError) showToast('Imported ' + file.name);
 }
 async function extractZipXmlText(zip, path){
   const xml = await zip.files[path].async('string');
@@ -580,20 +644,28 @@ async function extractZipXmlText(zip, path){
   const nodes = Array.from(doc.getElementsByTagName('*')).filter(el=>el.children.length===0 && el.textContent.trim());
   return nodes.map(el=>el.textContent.trim()).join(' ');
 }
-async function extractPdf(buf){
-  const pdf = await pdfjsLib.getDocument({data:buf.slice(0)}).promise;
+async function extractPdf(buf, onProgress){
+  let pdf;
+  try{ pdf = await pdfjsLib.getDocument({data:buf.slice(0)}).promise; }
+  catch(e){ throw new Error('This PDF could not be opened (it may be encrypted, corrupted, or an unsupported format): ' + e.message); }
   const pages = []; let fullText='';
   for(let i=1;i<=pdf.numPages;i++){
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    let pageText = content.items.map(it=>it.str).join(' ').replace(/\s+/g,' ').trim();
-    let dataURL = null;
-    if(pageText.length < 20){
-      const viewport = page.getViewport({scale:2});
-      const canvas = document.createElement('canvas'); canvas.width=viewport.width; canvas.height=viewport.height;
-      await page.render({canvasContext:canvas.getContext('2d'), viewport}).promise;
-      dataURL = canvas.toDataURL('image/jpeg',0.9);
-      pageText = await ocrImage(dataURL);
+    if(onProgress) onProgress(i, pdf.numPages);
+    let pageText='', dataURL=null;
+    try{
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      pageText = content.items.map(it=>it.str).join(' ').replace(/\s+/g,' ').trim();
+      if(pageText.length < 20){
+        const viewport = page.getViewport({scale:2});
+        const canvas = document.createElement('canvas'); canvas.width=viewport.width; canvas.height=viewport.height;
+        await page.render({canvasContext:canvas.getContext('2d'), viewport}).promise;
+        dataURL = canvas.toDataURL('image/jpeg',0.9);
+        try{ pageText = await ocrImage(dataURL); }catch(ocrErr){ console.error('OCR failed on page '+i, ocrErr); pageText = '[Page '+i+': text recognition failed]'; }
+      }
+    }catch(pageErr){
+      console.error('Page '+i+' failed', pageErr);
+      pageText = '[Page '+i+' could not be read: ' + pageErr.message + ']';
     }
     pages.push({dataURL, text:pageText});
     fullText += pageText + '\n\n';
@@ -604,6 +676,7 @@ async function getWorker(){ if(!tesseractWorker){ tesseractWorker = await Tesser
 async function ocrImage(dataURL){ const worker=await getWorker(); const {data}=await worker.recognize(dataURL); return (data.text||'').trim(); }
 async function renderPdfPageImage(doc, idx){
   if(doc.pages[idx] && doc.pages[idx].dataURL) return doc.pages[idx].dataURL;
+  if(!doc.pdfBuf) throw new Error('Original PDF data is unavailable');
   const pdf = await pdfjsLib.getDocument({data:doc.pdfBuf.slice(0)}).promise;
   const page = await pdf.getPage(idx+1);
   const viewport = page.getViewport({scale:2});
@@ -618,7 +691,7 @@ async function renderPdfPageImage(doc, idx){
 function renderLibrary(){
   const list = $('libraryList'); list.innerHTML='';
   $('libraryEmpty').style.display = library.length ? 'none' : 'block';
-  const KIND_LABELS = {text:'TXT',csv:'CSV',pdf:'PDF',docx:'DOC',doclegacy:'DOC',xlsx:'XLS',pptx:'PPT',pptlegacy:'PPT',odf:'ODF',image:'IMG',audio:'AUD',video:'VID',scan:'IMG',unsupported:'?'};
+  const KIND_LABELS = {text:'TXT',json:'JSON',html:'HTML',csv:'CSV',pdf:'PDF',docx:'DOC',doclegacy:'DOC',xlsx:'XLS',pptx:'PPT',pptlegacy:'PPT',odf:'ODF',image:'IMG',audio:'AUD',video:'VID',scan:'IMG',unsupported:'?'};
   library.slice().reverse().forEach(doc=>{
     const el = document.createElement('div'); el.className='doc-card';
     el.innerHTML = `<div class="doc-icon">${KIND_LABELS[doc.kind]||'FILE'}</div>
@@ -633,7 +706,7 @@ function renderLibrary(){
 function openDoc(id){
   currentDocId=id; currentPageIdx=0; searchMatches=[]; currentMatchIdx=-1; ttsRange=null; zoomScale=1; activeSheetIdx=0;
   const doc = currentDoc();
-  viewMode = ['text','csv','pptx','odf','doclegacy','pptlegacy'].includes(doc.kind) ? 'text' : 'native';
+  viewMode = ['text','json','csv','pptx','odf','doclegacy','pptlegacy'].includes(doc.kind) ? 'text' : 'native';
   $('previewName').textContent = doc.name;
   $('chatLog').innerHTML = '<div class="bubble hint">Ask a question about the file you\'re previewing.</div>';
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -715,7 +788,14 @@ async function renderPreview(){
       nativeEl.innerHTML = `<div class="hint-box">Audio playback and file conversion only — search, read-aloud, and Ask AI don't apply to audio content.</div><audio class="media-player" controls src="${doc.mediaURL}"></audio>`;
     } else if(doc.kind==='video'){
       nativeEl.innerHTML = `<div class="hint-box">Video playback and audio extraction only — search, read-aloud, and Ask AI don't apply to video content.</div><video class="media-player" controls src="${doc.mediaURL}"></video>`;
-    } else if(doc.kind==='csv' || doc.kind==='text'){
+    } else if(doc.kind==='html'){
+      const iframe = document.createElement('iframe');
+      iframe.setAttribute('sandbox',''); iframe.title = doc.name;
+      iframe.style.width='100%'; iframe.style.minHeight='65vh'; iframe.style.border='1px solid var(--border)'; iframe.style.borderRadius='var(--radius)'; iframe.style.background='#fff';
+      iframe.srcdoc = doc.html || '';
+      nativeEl.appendChild(iframe);
+      nativeEl.insertAdjacentHTML('beforeend', '<div class="hint-box" style="margin-top:10px;">Shown in a locked-down sandbox for safety - scripts in this HTML file will not run.</div>');
+    } else if(doc.kind==='csv' || doc.kind==='text' || doc.kind==='json'){
       // text kinds default to text view, native rarely used, fallback shown just in case
       nativeEl.innerHTML = '<div class="hint-box">Switch to text view (Aa) to read this file.</div>';
     } else {
@@ -1125,6 +1205,7 @@ function openConvertModal(){
   if(doc.kind==='image'){ items.push({label:'Save as PNG', fn:()=>convertImageFormat(doc,'png')}); items.push({label:'Save as JPG', fn:()=>convertImageFormat(doc,'jpg')}); }
   if((doc.kind==='pdf'||doc.kind==='scan') && doc.pages.length){ items.push({label:'Export pages as Images (ZIP)', fn:()=>convertPagesToZip(doc)}); }
   if(doc.kind==='scan'){ items.push({label:'Save scan as PDF', fn:()=>convertPagesToPdf(doc)}); }
+  if((doc.kind==='pdf'||doc.kind==='scan'||doc.kind==='image')){ items.push({label:'Sign document', fn:()=>openSignModal()}); }
   if(doc.kind==='audio'){ items.push({label:'Convert to WAV', fn:()=>convertAudioToWav(doc)}); items.push({label:'Download original', fn:()=>downloadBlob(doc.blob, doc.name+'.'+doc.ext)}); }
   if(doc.kind==='video'){ items.push({label:'Extract Audio (WebM)', fn:()=>extractVideoAudio(doc)}); items.push({label:'Download original', fn:()=>downloadBlob(doc.blob, doc.name+'.'+doc.ext)}); }
   if(!items.length){ list.innerHTML = '<div class="hint-box">No conversions available for this file yet.</div>'; }
@@ -1344,6 +1425,9 @@ function appendChat(logId, role,text){
 }
 $('btnSendAi').addEventListener('click', sendAi);
 $('aiInput').addEventListener('keydown', e=>{ if(e.key==='Enter') sendAi(); });
+document.querySelectorAll('#quickPrompts .chip-prompt').forEach(chip=>{
+  chip.addEventListener('click', ()=>{ $('aiInput').value = chip.dataset.prompt; sendAi(); });
+});
 async function sendAi(){
   const input=$('aiInput'); const question=input.value.trim(); if(!question) return;
   const doc=currentDoc(); if(!doc || !doc.fullText){ showToast('No readable text in this file yet'); return; }
@@ -1383,6 +1467,9 @@ $('btnSelectAllFiles').addEventListener('click', ()=>{ library.forEach(d=>select
 $('btnSelectNoneFiles').addEventListener('click', ()=>{ selectedFileIds.clear(); renderFileChecklist(); });
 $('btnSendAiAll').addEventListener('click', sendAiAll);
 $('aiInputAll').addEventListener('keydown', e=>{ if(e.key==='Enter') sendAiAll(); });
+document.querySelectorAll('#quickPromptsAll .chip-prompt').forEach(chip=>{
+  chip.addEventListener('click', ()=>{ $('aiInputAll').value = chip.dataset.prompt; sendAiAll(); });
+});
 async function sendAiAll(){
   const input=$('aiInputAll'); const question=input.value.trim(); if(!question) return;
   const docs = library.filter(d=>selectedFileIds.has(d.id) && d.fullText);
@@ -1398,6 +1485,109 @@ async function sendAiAll(){
     pending.textContent = "Using free offline Smart Search across " + docs.length + " file(s) (no AI available right now):\n\n" + (fallback.length ? fallback.map(s=>'- '+s).join('\n') : 'No close matches found.');
   }
 }
+
+/* ---------------- Sign document ---------------- */
+let signatureDataURL = null;
+let signPlacement = {x:20, y:70, w:35};
+function openSignModal(){
+  const doc = currentDoc();
+  if(!doc || !['pdf','scan','image'].includes(doc.kind)){ showToast('Signing works on PDF, scanned, or image documents'); return; }
+  $('signStepDraw').style.display='block'; $('signStepPlace').style.display='none';
+  $('signModal').classList.add('on');
+  setupSignPad();
+}
+$('btnCloseSign').addEventListener('click', ()=> $('signModal').classList.remove('on'));
+function setupSignPad(){
+  const canvas = $('signPad');
+  const dpr = window.devicePixelRatio||1;
+  canvas.width = canvas.clientWidth*dpr; canvas.height = canvas.clientHeight*dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#10152A';
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  let drawing=false, last=null;
+  function pos(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+  canvas.onpointerdown = e=>{ drawing=true; last=pos(e); };
+  canvas.onpointermove = e=>{ if(!drawing) return; const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; };
+  window.addEventListener('pointerup', ()=> drawing=false);
+  $('btnClearSign').onclick = ()=>{ ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); };
+}
+$('btnUseSign').addEventListener('click', ()=>{
+  signatureDataURL = $('signPad').toDataURL('image/png');
+  $('signStepDraw').style.display='none'; $('signStepPlace').style.display='block';
+  renderSignPlacement();
+});
+$('btnBackToDraw').addEventListener('click', ()=>{ $('signStepPlace').style.display='none'; $('signStepDraw').style.display='block'; });
+function getSignTargetPageURL(doc){ return doc.kind==='image' ? doc.dataURL : (doc.pages[0] ? doc.pages[0].dataURL : null); }
+async function renderSignPlacement(){
+  const doc = currentDoc();
+  let pageURL = getSignTargetPageURL(doc);
+  if(!pageURL && doc.kind==='pdf'){ try{ pageURL = await renderPdfPageImage(doc,0); }catch(e){ showToast('Could not load the page to sign'); return; } }
+  if(!pageURL){ showToast('Could not load the page to sign'); return; }
+  const stage = $('signPlaceStage'); stage.innerHTML='';
+  const img = document.createElement('img'); img.src = pageURL;
+  stage.appendChild(img);
+  const sigBox = document.createElement('div'); sigBox.className='sign-box';
+  sigBox.style.left=signPlacement.x+'%'; sigBox.style.top=signPlacement.y+'%'; sigBox.style.width=signPlacement.w+'%';
+  const sigImg = document.createElement('img'); sigImg.src=signatureDataURL;
+  sigBox.appendChild(sigImg);
+  const handle = document.createElement('div'); handle.className='crop-handle'; handle.style.left='100%'; handle.style.top='100%';
+  sigBox.appendChild(handle);
+  stage.appendChild(sigBox);
+  let mode=null, startX=0, startY=0, startW=0, startLeft=0, startTop=0;
+  sigBox.addEventListener('pointerdown', e=>{
+    mode = (e.target===handle) ? 'resize' : 'move';
+    startX=e.clientX; startY=e.clientY; startW=signPlacement.w; startLeft=signPlacement.x; startTop=signPlacement.y;
+    e.stopPropagation(); e.preventDefault();
+  });
+  stage.addEventListener('pointermove', e=>{
+    if(!mode) return;
+    const rect = stage.getBoundingClientRect();
+    const dxPct = ((e.clientX-startX)/rect.width)*100, dyPct = ((e.clientY-startY)/rect.height)*100;
+    if(mode==='move'){ signPlacement.x=Math.max(0,Math.min(95,startLeft+dxPct)); signPlacement.y=Math.max(0,Math.min(95,startTop+dyPct)); }
+    else { signPlacement.w=Math.max(8,Math.min(90,startW+dxPct)); }
+    sigBox.style.left=signPlacement.x+'%'; sigBox.style.top=signPlacement.y+'%'; sigBox.style.width=signPlacement.w+'%';
+  });
+  window.addEventListener('pointerup', ()=> mode=null);
+}
+async function exportSignedDoc(){
+  const doc = currentDoc();
+  let baseURL = getSignTargetPageURL(doc);
+  if(!baseURL && doc.kind==='pdf'){ baseURL = await renderPdfPageImage(doc,0); }
+  if(!baseURL){ showToast('Could not prepare the page to sign'); return; }
+  try{
+    const pageImg = new Image(); await new Promise((res,rej)=>{ pageImg.onload=res; pageImg.onerror=rej; pageImg.src=baseURL; });
+    const canvas = document.createElement('canvas'); canvas.width=pageImg.naturalWidth; canvas.height=pageImg.naturalHeight;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(pageImg,0,0);
+    const sigImg = new Image(); await new Promise((res,rej)=>{ sigImg.onload=res; sigImg.onerror=rej; sigImg.src=signatureDataURL; });
+    const sw = canvas.width*(signPlacement.w/100);
+    const sh = sw*(sigImg.naturalHeight/sigImg.naturalWidth);
+    ctx.drawImage(sigImg, canvas.width*(signPlacement.x/100), canvas.height*(signPlacement.y/100), sw, sh);
+    const signedPageURL = canvas.toDataURL('image/jpeg',0.92);
+    const { jsPDF } = window.jspdf; const pdf = new jsPDF();
+    if(doc.kind==='image'){
+      const props = pdf.getImageProperties(signedPageURL);
+      const w = pdf.internal.pageSize.getWidth(); const h = Math.min((props.height*w)/props.width, pdf.internal.pageSize.getHeight());
+      pdf.addImage(signedPageURL,'JPEG',0,0,w,h);
+    } else {
+      let first=true;
+      for(let i=0;i<doc.pages.length;i++){
+        if(!first) pdf.addPage(); first=false;
+        let url = i===0 ? signedPageURL : (doc.pages[i].dataURL || (doc.kind==='pdf' ? await renderPdfPageImage(doc,i).catch(()=>null) : null));
+        if(url){
+          const props = pdf.getImageProperties(url);
+          const w = pdf.internal.pageSize.getWidth(); const h = Math.min((props.height*w)/props.width, pdf.internal.pageSize.getHeight());
+          pdf.addImage(url,'JPEG',0,0,w,h);
+        } else {
+          pdf.setFontSize(11); pdf.text(pdf.splitTextToSize(doc.pages[i].text||'', 180), 10, 15);
+        }
+      }
+    }
+    pdf.save(doc.name+'-signed.pdf');
+    showToast('Signed PDF downloaded');
+    $('signModal').classList.remove('on');
+  }catch(e){ console.error(e); showToast('Could not export the signed PDF'); }
+}
+$('btnExportSigned').addEventListener('click', exportSignedDoc);
 
 /* ---------------- Init ---------------- */
 if('serviceWorker' in navigator && location.protocol!=='file:'){
